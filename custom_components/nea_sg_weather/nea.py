@@ -409,6 +409,47 @@ class WindDirection(NeaData):
         _LOGGER.debug("%s: Secondary data processed", self.__class__.__name__)
         return
 
+class PSI(NeaData):
+    """Class for _PSI_ (Pollutant Standards Index) data"""
+
+    def __init__(self):
+        self.timestamp = ""
+        self.data = dict()
+        self.pm25_24h = dict()
+        self.sub_indices = dict()
+        NeaData.__init__(
+            self,
+            PRIMARY_ENDPOINTS["psi"],
+            SECONDARY_ENDPOINTS["psi"],
+        )
+
+    def process_data(self):
+        readings = self._resp["data"]["items"][0]["readings"]
+
+        # Update data timestamp
+        self.timestamp = self._resp["data"]["items"][0]["timestamp"]
+
+        # Store 24-hour PSI per region (the headline figure NEA publishes)
+        self.data = readings["psi_twenty_four_hourly"]
+
+        # Store 24-hour PM2.5 per region (complements the 1-hourly PM25 class)
+        self.pm25_24h = readings.get("pm25_twenty_four_hourly", {})
+
+        # Store per-pollutant sub-indices, keyed by pollutant then region
+        self.sub_indices = {
+            key.removesuffix("_sub_index"): value
+            for key, value in readings.items()
+            if key.endswith("_sub_index")
+        }
+
+        _LOGGER.debug("%s: Data processed", self.__class__.__name__)
+        return
+
+    def process_secondary_data(self):
+        _LOGGER.debug("%s: Secondary data processed", self.__class__.__name__)
+        return
+
+
 class PM25(NeaData):
     """Class for _pm2.5_ data"""
 

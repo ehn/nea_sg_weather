@@ -135,6 +135,13 @@ async def async_setup_entry(
             for region in REGIONS
         ]
 
+    # add psi sensor entities
+    if config_entry.data[CONF_SENSORS][CONF_REGION]:
+        entities_list += [
+            NeaPSISensor(coordinator, config_entry.data, region, entry_id)
+            for region in REGIONS
+        ]
+
     async_add_entities(entities_list)
 
 
@@ -331,6 +338,76 @@ class NeaPM25Sensor(CoordinatorEntity, SensorEntity):
         return {
             "Updated at": self.coordinator.data.forecast24hr.timestamp,
         }
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Device info."""
+        return DeviceInfo(
+            name="Weather forecast coordinator",
+            identifiers={(DOMAIN, self._entry_id)},
+            manufacturer="NEA Weather",
+            model="data.gov.sg API Polling",
+        )
+
+
+class NeaPSISensor(CoordinatorEntity, SensorEntity):
+    """Implementation of a NEA 24-hour PSI sensor for a region in Singapore."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = SensorDeviceClass.AQI
+    _attr_icon = "mdi:weather-hazy"
+
+    def __init__(
+        self,
+        coordinator,
+        config: MappingProxyType[str, Any],
+        region: str,
+        entry_id: str,
+    ) -> None:
+        """Initialise PSI sensor with a data instance and region."""
+        super().__init__(coordinator)
+        self.coordinator = coordinator
+        self._platform = "sensor"
+        self._prefix = config[CONF_SENSORS][CONF_PREFIX]
+        self._region = region
+        self._entry_id = entry_id
+        self.entity_id = (
+            (self._platform + "." + self._prefix + "_psi" + self._region)
+            .lower()
+            .replace(" ", "_")
+        )
+
+    @property
+    def unique_id(self):
+        """Return the unique ID."""
+        return self._prefix + " psi " + self._region
+
+    @property
+    def name(self):
+        """Return the friendly name of the sensor."""
+        return (
+            ("PSI in " + self._region + "ern Singapore")
+            if self._region != "Central"
+            else ("PSI in " + self._region + " Singapore")
+        )
+
+    @property
+    def native_value(self):
+        """Return the 24-hour PSI reading."""
+        return self.coordinator.data.psi.data[self._region.lower()]
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return dict of additional properties to attach to sensors."""
+        psi = self.coordinator.data.psi
+        region = self._region.lower()
+        attributes = {
+            "Updated at": psi.timestamp,
+            "PM2.5 (24h)": psi.pm25_24h.get(region),
+        }
+        for pollutant, values in psi.sub_indices.items():
+            attributes[pollutant.upper() + " sub-index"] = values.get(region)
+        return attributes
 
     @property
     def device_info(self) -> DeviceInfo:

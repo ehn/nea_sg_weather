@@ -566,6 +566,7 @@ PRIMARY_ENDPOINTS = {
     "rainfall": "https://api-open.data.gov.sg/v2/real-time/api/rainfall",
     "uv-index": "https://api-open.data.gov.sg/v2/real-time/api/uv",
     "pm25": "https://api-open.data.gov.sg/v2/real-time/api/pm25",
+    "psi": "https://api-open.data.gov.sg/v2/real-time/api/psi",
 }
 
 SECONDARY_ENDPOINTS = {
@@ -579,4 +580,5 @@ SECONDARY_ENDPOINTS = {
     "rainfall": "",
     "uv-index": "",
     "pm25": "",
+    "psi": "",
 }
