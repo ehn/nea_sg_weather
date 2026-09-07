@@ -24,6 +24,7 @@ from custom_components.nea_sg_weather.nea import (
     Rain,
     UVIndex,
     PM25,
+    PSI,
 )
 
 pytestmark = pytest.mark.asyncio
@@ -195,3 +196,28 @@ async def test_pm25_returns_regional_data():
     for region in p.data:
         assert region in expected_regions, f"Unexpected PM2.5 region: {region!r}"
         assert p.data[region] >= 0, f"PM2.5 value for {region!r} is negative"
+
+
+# ---------------------------------------------------------------------------
+# PSI
+# ---------------------------------------------------------------------------
+
+async def test_psi_returns_regional_data():
+    p = await _fetch(PSI())
+
+    assert p.timestamp, "timestamp should be populated"
+    assert isinstance(p.data, dict) and len(p.data) > 0, (
+        "PSI data should be a non-empty dict"
+    )
+
+    expected_regions = {"west", "east", "central", "south", "north"}
+    for region in p.data:
+        assert region in expected_regions, f"Unexpected PSI region: {region!r}"
+        assert p.data[region] >= 0, f"PSI value for {region!r} is negative"
+
+    # 24-hour PM2.5 and per-pollutant sub-indices come from the same payload
+    assert set(p.pm25_24h) <= expected_regions
+    assert isinstance(p.sub_indices, dict)
+    for pollutant, values in p.sub_indices.items():
+        assert not pollutant.endswith("_sub_index"), pollutant
+        assert set(values) <= expected_regions, f"Unexpected regions in {pollutant!r} sub-index"

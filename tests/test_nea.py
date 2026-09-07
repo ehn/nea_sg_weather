@@ -12,6 +12,7 @@ from custom_components.nea_sg_weather.nea import (
     Humidity,
     UVIndex,
     PM25,
+    PSI,
     Wind,
     Rain,
     WindDirection,
@@ -454,6 +455,107 @@ class TestPM25:
         pm.process_data()
         assert pm.data["west"] == 20
         assert pm.data["north"] == 19
+
+
+# ---------------------------------------------------------------------------
+# PSI
+# ---------------------------------------------------------------------------
+
+class TestPSI:
+    _REGIONS = ("west", "east", "central", "south", "north")
+
+    def _make_resp(
+        self,
+        psi,
+        pm25_24h=None,
+        sub_indices=None,
+        timestamp="2024-01-01T12:00:00+08:00",
+    ):
+        readings = {"psi_twenty_four_hourly": psi}
+        if pm25_24h is not None:
+            readings["pm25_twenty_four_hourly"] = pm25_24h
+        for pollutant, values in (sub_indices or {}).items():
+            readings[f"{pollutant}_sub_index"] = values
+        return {
+            "data": {
+                "items": [{
+                    "timestamp": timestamp,
+                    "readings": readings,
+                }]
+            }
+        }
+
+    def _readings(self, base):
+        return {r: base + i for i, r in enumerate(self._REGIONS)}
+
+    def test_process_data_stores_psi(self):
+        p = PSI()
+        psi = self._readings(50)
+        p._resp = self._make_resp(psi)
+        p.process_data()
+        assert p.data == psi
+
+    def test_process_data_timestamp(self):
+        p = PSI()
+        p._resp = self._make_resp(self._readings(50))
+        p.process_data()
+        assert p.timestamp == "2024-01-01T12:00:00+08:00"
+
+    def test_process_data_region_values(self):
+        p = PSI()
+        p._resp = self._make_resp({"west": 121, "east": 95, "central": 130, "south": 88, "north": 101})
+        p.process_data()
+        assert p.data["central"] == 130
+        assert p.data["south"] == 88
+
+    def test_process_data_stores_pm25_24h(self):
+        p = PSI()
+        pm25_24h = self._readings(30)
+        p._resp = self._make_resp(self._readings(50), pm25_24h=pm25_24h)
+        p.process_data()
+        assert p.pm25_24h == pm25_24h
+
+    def test_process_data_missing_pm25_24h_is_empty(self):
+        p = PSI()
+        p._resp = self._make_resp(self._readings(50))
+        p.process_data()
+        assert p.pm25_24h == {}
+
+    def test_process_data_sub_indices_keyed_by_pollutant(self):
+        p = PSI()
+        sub = {
+            "pm25": self._readings(50),
+            "pm10": self._readings(40),
+            "so2": self._readings(10),
+            "co": self._readings(5),
+            "o3": self._readings(20),
+        }
+        p._resp = self._make_resp(self._readings(50), sub_indices=sub)
+        p.process_data()
+        assert p.sub_indices == sub
+        assert set(p.sub_indices) == {"pm25", "pm10", "so2", "co", "o3"}
+
+    def test_process_data_ignores_non_sub_index_readings(self):
+        p = PSI()
+        resp = self._make_resp(self._readings(50), sub_indices={"pm25": self._readings(50)})
+        resp["data"]["items"][0]["readings"]["co_eight_hour_max"] = self._readings(1)
+        resp["data"]["items"][0]["readings"]["no2_one_hour_max"] = self._readings(2)
+        p._resp = resp
+        p.process_data()
+        assert set(p.sub_indices) == {"pm25"}
+
+    def test_process_data_no_sub_indices_is_empty(self):
+        p = PSI()
+        p._resp = self._make_resp(self._readings(50))
+        p.process_data()
+        assert p.sub_indices == {}
+
+    def test_initial_state(self):
+        p = PSI()
+        assert p.timestamp == ""
+        assert p.data == {}
+        assert p.pm25_24h == {}
+        assert p.sub_indices == {}
 
 
 # ---------------------------------------------------------------------------

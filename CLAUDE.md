@@ -61,7 +61,7 @@ custom_components/nea_sg_weather/
 ├── const.py          # All constants: areas, regions, condition maps, endpoints
 ├── nea.py            # Async API wrappers (Forecast2hr, Wind, Rain, …)
 ├── weather.py        # WeatherEntity
-├── sensor.py         # Sensor entities (area, region, rain, UV, PM2.5)
+├── sensor.py         # Sensor entities (area, region, rain, UV, PM2.5, PSI)
 ├── camera.py         # Rain-map camera entities
 └── config_flow.py    # Config-entry UI flow
 ```

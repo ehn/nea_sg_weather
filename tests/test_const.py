@@ -175,7 +175,7 @@ class TestEndpoints:
         required = {
             "forecast2hr", "forecast24hr", "temperature", "humidity",
             "wind-direction", "wind-speed", "forecast4day", "rainfall",
-            "uv-index", "pm25",
+            "uv-index", "pm25", "psi",
         }
         assert set(PRIMARY_ENDPOINTS.keys()) == required
 
