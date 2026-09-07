@@ -71,6 +71,7 @@ _ha_weather.Forecast = dict
 _ha_sensor = MagicMock()
 _ha_sensor.SensorDeviceClass = MagicMock()
 _ha_sensor.SensorDeviceClass.PM25 = "pm25"
+_ha_sensor.SensorDeviceClass.AQI = "aqi"
 _ha_sensor.SensorDeviceClass.PRECIPITATION = "precipitation"
 _ha_sensor.SensorEntity = _SensorEntity
 _ha_sensor.SensorStateClass = MagicMock()

@@ -27,7 +27,8 @@ from .nea import (
     Wind,
     Rain,
     UVIndex,
-    PM25
+    PM25,
+    PSI,
 )
 
 from .const import (
@@ -131,6 +132,7 @@ _ATTR_BY_CLASS: dict[str, str] = {
     "Rain": "rain",
     "UVIndex": "uvindex",
     "PM25": "pm25",
+    "PSI": "psi",
 }
 
 
@@ -159,7 +161,8 @@ class NeaWeatherData:
                 self.data.wind,
                 self.data.rain,
                 self.data.uvindex,
-                self.data.pm25
+                self.data.pm25,
+                self.data.psi,
             ]
         else:
             if self._config_entry.data[CONF_SENSORS].get(CONF_AREAS, ["None"]) != [
@@ -167,7 +170,11 @@ class NeaWeatherData:
             ]:
                 _data_objects += [self.data.forecast2hr]
             if self._config_entry.data[CONF_SENSORS].get(CONF_REGION, False):
-                _data_objects += [self.data.forecast24hr]
+                _data_objects += [
+                    self.data.forecast24hr,
+                    self.data.pm25,
+                    self.data.psi,
+                ]
         _data_objects = set(_data_objects)
 
         session = async_get_clientsession(self._hass)
@@ -211,4 +218,5 @@ class NeaWeatherData:
             self.wind = Wind()
             self.rain = Rain()
             self.pm25 = PM25()
+            self.psi = PSI()
             self.query_time = datetime.now(timezone(timedelta(hours=8))).isoformat()

@@ -172,6 +172,37 @@ PM25 = {
     },
 }
 
+PSI = {
+    "data": {
+        "items": [{
+            "timestamp": "2024-01-01T12:00:00+08:00",
+            "readings": {
+                "psi_twenty_four_hourly": {
+                    "west": 55, "east": 60, "central": 52, "south": 58, "north": 50,
+                },
+                "pm25_twenty_four_hourly": {
+                    "west": 20, "east": 22, "central": 18, "south": 21, "north": 19,
+                },
+                "pm25_sub_index": {
+                    "west": 55, "east": 60, "central": 52, "south": 58, "north": 50,
+                },
+                "pm10_sub_index": {
+                    "west": 30, "east": 32, "central": 28, "south": 31, "north": 29,
+                },
+                "so2_sub_index": {
+                    "west": 5, "east": 6, "central": 4, "south": 5, "north": 5,
+                },
+                "co_sub_index": {
+                    "west": 3, "east": 3, "central": 2, "south": 3, "north": 3,
+                },
+                "o3_sub_index": {
+                    "west": 10, "east": 12, "central": 9, "south": 11, "north": 10,
+                },
+            },
+        }],
+    },
+}
+
 _BASE = "https://api-open.data.gov.sg/v2/real-time/api"
 
 _ENDPOINTS = [
@@ -185,6 +216,7 @@ _ENDPOINTS = [
     ("rainfall",               RAINFALL),
     ("uv",                     UV_INDEX),
     ("pm25",                   PM25),
+    ("psi",                    PSI),
 ]
 
 
