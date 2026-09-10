@@ -125,3 +125,86 @@ class TestGetPlatforms:
             weather=False, sensor=True, areas=["All"]
         ))
         assert "sensor" in result["platforms"]
+
+
+# ---------------------------------------------------------------------------
+# NeaWeatherData.async_update — which data objects are polled
+# ---------------------------------------------------------------------------
+
+from unittest.mock import patch
+
+from custom_components.nea_sg_weather import NeaWeatherData
+from custom_components.nea_sg_weather import nea as nea_module
+
+ALL_OBJECTS = {
+    "Forecast2hr", "Forecast24hr", "Forecast4day", "Temperature", "Humidity",
+    "Wind", "Rain", "UVIndex", "PM25", "PSI",
+}
+
+
+async def _polled(config_entry) -> set[str]:
+    """Run async_update with fetches stubbed out; return polled class names."""
+    called: set[str] = set()
+
+    async def fake_init(self, session):
+        called.add(type(self).__name__)
+
+    with patch.object(nea_module.NeaData, "async_init", fake_init), \
+         patch.object(nea_module.Wind, "async_init", fake_init), \
+         patch("custom_components.nea_sg_weather.async_get_clientsession", return_value=MagicMock()):
+        await NeaWeatherData(MagicMock(), config_entry).async_update()
+    return called
+
+
+class TestAsyncUpdatePolledObjects:
+    async def test_weather_entity_polls_everything(self):
+        polled = await _polled(_make_config_entry(weather=True))
+        assert polled == ALL_OBJECTS
+
+    async def test_region_sensors_only(self):
+        polled = await _polled(_make_config_entry(
+            weather=False, sensor=True, areas=["None"], region=True
+        ))
+        assert polled == {"Forecast24hr", "PM25", "PSI", "UVIndex"}
+
+    async def test_region_sensors_only_with_empty_areas_list(self):
+        # The config flow stores [] when no areas are selected
+        polled = await _polled(_make_config_entry(
+            weather=False, sensor=True, areas=[], region=True
+        ))
+        assert polled == {"Forecast24hr", "PM25", "PSI", "UVIndex"}
+
+    async def test_area_sensors_only(self):
+        polled = await _polled(_make_config_entry(
+            weather=False, sensor=True, areas=["Ang Mo Kio"]
+        ))
+        assert polled == {"Forecast2hr", "UVIndex"}
+
+    async def test_rain_sensors_poll_rain(self):
+        polled = await _polled(_make_config_entry(
+            weather=False, sensor=True, areas=["None"], region=True, rain=True
+        ))
+        assert polled == {"Forecast24hr", "PM25", "PSI", "UVIndex", "Rain"}
+
+    async def test_rain_only_no_sensor_platform(self):
+        # Rain alone only loads the camera platform; the cameras read no
+        # coordinator data and no rain/UV sensors exist, so nothing is polled
+        entry = _make_config_entry(
+            weather=False, sensor=True, areas=["None"], rain=True
+        )
+        assert get_platforms(entry)["platforms"] == ["camera"]
+        assert await _polled(entry) == set()
+
+    async def test_uv_polled_whenever_sensor_platform_loads(self):
+        for kwargs in (
+            dict(areas=["Bedok"]),
+            dict(areas=["None"], region=True),
+            dict(areas=["All"], region=True, rain=True),
+        ):
+            entry = _make_config_entry(weather=False, sensor=True, **kwargs)
+            assert "sensor" in get_platforms(entry)["platforms"]
+            assert "UVIndex" in await _polled(entry), kwargs
+
+    async def test_nothing_enabled_polls_nothing(self):
+        polled = await _polled(_make_config_entry(weather=False, sensor=False))
+        assert polled == set()

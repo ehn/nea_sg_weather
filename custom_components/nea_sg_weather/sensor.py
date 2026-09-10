@@ -336,7 +336,7 @@ class NeaPM25Sensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict:
         """Return dict of additional properties to attach to sensors."""
         return {
-            "Updated at": self.coordinator.data.forecast24hr.timestamp,
+            "Updated at": self.coordinator.data.pm25.timestamp,
         }
 
     @property
@@ -568,7 +568,7 @@ class NeaUVSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict:
         """Return dict of additional properties to attach to sensors."""
         return {
-            "Updated at": self.coordinator.data.forecast24hr.timestamp,
+            "Updated at": self.coordinator.data.uvindex.timestamp,
         }
 
     @property

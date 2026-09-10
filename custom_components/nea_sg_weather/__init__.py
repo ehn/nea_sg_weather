@@ -165,16 +165,23 @@ class NeaWeatherData:
                 self.data.psi,
             ]
         else:
-            if self._config_entry.data[CONF_SENSORS].get(CONF_AREAS, ["None"]) != [
-                "None"
-            ]:
+            _sensors = self._config_entry.data[CONF_SENSORS]
+            _platforms = get_platforms(self._config_entry)["platforms"]
+            if _sensors.get(CONF_AREAS, ["None"]) not in (["None"], []):
                 _data_objects += [self.data.forecast2hr]
-            if self._config_entry.data[CONF_SENSORS].get(CONF_REGION, False):
+            if _sensors.get(CONF_REGION, False):
                 _data_objects += [
                     self.data.forecast24hr,
                     self.data.pm25,
                     self.data.psi,
                 ]
+            # Rain sensors and the UV sensor are created by
+            # sensor.async_setup_entry, so only poll them when the sensor
+            # platform is loaded. The rain cameras do not read coordinator data.
+            if "sensor" in _platforms:
+                _data_objects += [self.data.uvindex]
+                if _sensors.get(CONF_RAIN, False):
+                    _data_objects += [self.data.rain]
         _data_objects = set(_data_objects)
 
         session = async_get_clientsession(self._hass)

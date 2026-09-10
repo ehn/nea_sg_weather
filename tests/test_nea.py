@@ -774,7 +774,7 @@ class TestFetchDataErrorHandling:
     async def _run(self, coro):
         return await coro
 
-    def test_primary_timeout_raises_when_no_secondary(self):
+    async def test_primary_timeout_raises_when_no_secondary(self):
         """A timeout with no secondary URL should propagate as ClientError."""
         import pytest, aiohttp as _aiohttp
         from custom_components.nea_sg_weather.nea import Temperature
@@ -783,13 +783,12 @@ class TestFetchDataErrorHandling:
         t.url2 = ""  # no secondary
         session = self._mock_session(side_effect=_asyncio.TimeoutError())
 
-        import asyncio
         with pytest.raises((_aiohttp.ClientError, _asyncio.TimeoutError)):
-            asyncio.get_event_loop().run_until_complete(t.fetch_data(session, t.url, t.url2))
+            await t.fetch_data(session, t.url, t.url2)
 
-    def test_primary_client_error_falls_back_to_secondary(self):
+    async def test_primary_client_error_falls_back_to_secondary(self):
         """A ClientError on primary triggers secondary endpoint fetch for an endpoint that has one."""
-        import aiohttp as _aiohttp, asyncio
+        import aiohttp as _aiohttp
 
         from custom_components.nea_sg_weather.nea import Forecast4day
 
@@ -821,13 +820,13 @@ class TestFetchDataErrorHandling:
 
         # process_secondary_data is called with the minimal response; for Forecast4day
         # it iterates over an empty list, so self.forecast remains [].
-        asyncio.get_event_loop().run_until_complete(f.fetch_data(session, f.url, f.url2))
+        await f.fetch_data(session, f.url, f.url2)
         assert call_count == 2  # primary tried then secondary tried
         assert f.forecast == []  # secondary processed (empty, but no crash)
 
-    def test_both_endpoints_fail_raises(self):
+    async def test_both_endpoints_fail_raises(self):
         """When both primary and secondary fail, an exception is raised."""
-        import aiohttp as _aiohttp, asyncio, pytest
+        import aiohttp as _aiohttp, pytest
         from custom_components.nea_sg_weather.nea import Forecast2hr
 
         f = Forecast2hr()
@@ -844,9 +843,7 @@ class TestFetchDataErrorHandling:
         session.get = lambda url, **kw: _CM(url, **kw)
 
         with pytest.raises((_aiohttp.ClientError, _asyncio.TimeoutError)):
-            asyncio.get_event_loop().run_until_complete(
-                f.fetch_data(session, f.url, f.url2)
-            )
+            await f.fetch_data(session, f.url, f.url2)
 
 
 class TestWindCalcStatusZeroReadings:
