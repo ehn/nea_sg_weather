@@ -50,7 +50,7 @@ WITH_REGION_SENSORS = {
     "timeout": 60,
     "sensors": {
         "prefix": "Singapore Weather",
-        "areas": ["None"],
+        "areas": [],
         "region": True,
         "rain": False,
     },
@@ -158,3 +158,22 @@ async def test_region_sensor_entities_registered(hass: HomeAssistant, mock_nea_a
     names = {s.name for s in hass.states.async_all("sensor")}
     regions = ("West", "East", "Central", "South", "North")
     assert any(region in name for name in names for region in regions)
+
+
+async def test_uv_sensor_has_value_without_weather_entity(hass: HomeAssistant, mock_nea_api):
+    """The UV sensor is polled even when only region sensors are configured."""
+    await _load(hass, WITH_REGION_SENSORS)
+    uv = hass.states.get("sensor.singapore_weather_uv")
+    assert uv is not None
+    assert uv.state == "5"
+    # Distinct from the 24-hour forecast timestamp (12:00) in the fixtures
+    assert uv.attributes["Updated at"] == "2024-01-01T11:00:00+08:00"
+
+
+async def test_pm25_sensor_has_value_without_weather_entity(hass: HomeAssistant, mock_nea_api):
+    """Region PM2.5 sensors are polled when only region sensors are configured."""
+    await _load(hass, WITH_REGION_SENSORS)
+    pm25 = hass.states.get("sensor.singapore_weather_pm25central")
+    assert pm25 is not None
+    assert pm25.state == "20"
+    assert pm25.attributes["Updated at"] == "2024-01-01T11:30:00+08:00"

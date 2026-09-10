@@ -29,7 +29,9 @@ def _make_coordinator(
     rain_name="Alexandra Road",
     rain_timestamp="2024-01-01T12:00:00+08:00",
     uv_index=5,
+    uv_timestamp="2024-01-01T12:00:00+08:00",
     pm25_data=None,
+    pm25_timestamp="2024-01-01T12:00:00+08:00",
     psi_data=None,
     psi_pm25_24h=None,
     psi_sub_indices=None,
@@ -60,7 +62,9 @@ def _make_coordinator(
     }
     coord.data.rain.timestamp = rain_timestamp
     coord.data.uvindex.uv_index = uv_index
+    coord.data.uvindex.timestamp = uv_timestamp
     coord.data.pm25.data = pm25_data or {"west": 12, "east": 10, "central": 8, "south": 9, "north": 11}
+    coord.data.pm25.timestamp = pm25_timestamp
     coord.data.psi.data = psi_data or {"west": 55, "east": 60, "central": 52, "south": 58, "north": 50}
     coord.data.psi.pm25_24h = psi_pm25_24h or {"west": 20, "east": 22, "central": 18, "south": 21, "north": 19}
     coord.data.psi.sub_indices = psi_sub_indices if psi_sub_indices is not None else {
@@ -319,6 +323,14 @@ class TestNeaUVSensor:
         sensor = NeaUVSensor(coord, _make_config(), "entry1")
         assert sensor.native_value == 0
 
+    def test_extra_state_attributes_uses_uv_timestamp(self):
+        coord = _make_coordinator(
+            uv_timestamp="2024-06-01T14:00:00+08:00",
+            region_timestamp="2024-06-01T06:00:00+08:00",
+        )
+        sensor = NeaUVSensor(coord, _make_config(), "entry1")
+        assert sensor.extra_state_attributes["Updated at"] == "2024-06-01T14:00:00+08:00"
+
 
 # ---------------------------------------------------------------------------
 # NeaPM25Sensor
@@ -355,6 +367,14 @@ class TestNeaPM25Sensor:
         coord = _make_coordinator()
         sensor = NeaPM25Sensor(coord, _make_config("nea"), "North", "entry1")
         assert sensor.entity_id == "sensor.nea_pm25north"
+
+    def test_extra_state_attributes_uses_pm25_timestamp(self):
+        coord = _make_coordinator(
+            pm25_timestamp="2024-06-01T14:00:00+08:00",
+            region_timestamp="2024-06-01T06:00:00+08:00",
+        )
+        sensor = NeaPM25Sensor(coord, _make_config(), "West", "entry1")
+        assert sensor.extra_state_attributes["Updated at"] == "2024-06-01T14:00:00+08:00"
 
 
 # ---------------------------------------------------------------------------

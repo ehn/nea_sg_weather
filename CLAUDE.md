@@ -46,12 +46,18 @@ Tests live in `tests/` and are structured by source module:
 | `tests/conftest.py` | Home Assistant module stubs (applied globally) |
 | `tests/test_const.py` | Constants, mappings, area/region lists, endpoints |
 | `tests/test_nea.py` | API wrapper data-processing logic (`nea.py`) |
-| `tests/test_init.py` | `get_platforms()` platform selection logic |
+| `tests/test_init.py` | `get_platforms()` platform selection; which data objects `async_update` polls per configuration |
 | `tests/test_sensor.py` | Sensor entity properties and formatting |
 
 Since this integration depends on Home Assistant, `tests/conftest.py` patches
 `sys.modules` with lightweight stubs before any source imports happen. No full
 HA installation is needed to run the tests.
+
+The suite runs with `asyncio_mode = auto`, so write coroutine tests as
+`async def` and `await` the call. Do not drive a loop by hand with
+`asyncio.get_event_loop().run_until_complete(...)`: once pytest-asyncio has torn
+down a loop for an earlier async test, `get_event_loop()` raises `RuntimeError`
+(pytest-asyncio ≥ 1.0), so such tests pass or fail depending on file order.
 
 ## Source Layout
 
@@ -80,6 +86,22 @@ Rain station entities are built from the live API response (`Rain.station_list`)
 - **New stations** — instantiated as `NeaRainSensor` and registered via `async_add_entities()`.
 
 `NeaRainSensor.available` returns `False` when the station ID is absent from `coordinator.data.rain.data`, preventing `KeyError` crashes in the brief window between a station disappearing from the API and its entity being removed.
+
+## Which Data Objects Get Polled
+
+`NeaWeatherData.async_update` in `__init__.py` only fetches the endpoints the
+configured entities need. With the weather entity enabled everything is polled.
+In a sensors-only configuration the set is built per option: area sensors →
+2-hour forecast; region sensors → 24-hour forecast, PM2.5, PSI. The UV sensor is
+created unconditionally by `sensor.async_setup_entry`, so UV is polled whenever
+`get_platforms()` includes the sensor platform; rain sensors live in the same
+platform, so rainfall is polled when the rain option is on *and* the sensor
+platform loads (the rain cameras read no coordinator data).
+
+When adding an entity that reads a new data object, add that object to every
+branch whose configuration creates the entity, and extend
+`tests/test_init.py::TestAsyncUpdatePolledObjects`. Entities that read an
+unpolled object silently show the object's constructor defaults (e.g. UV = 0).
 
 ## API Failure Handling
 
