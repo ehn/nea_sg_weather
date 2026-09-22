@@ -2,7 +2,6 @@
 import re
 import threading
 import pytest
-from aioresponses import aioresponses as AioResponses
 
 
 # pytest-homeassistant-custom-component blocks custom integrations by default.
@@ -230,17 +229,17 @@ _ENDPOINTS = [
 
 
 @pytest.fixture
-def mock_nea_api():
+def mock_nea_api(aioclient_mock):
     """Intercept all NEA API calls and return canned responses.
 
-    Uses regex matching so query-string parameters (date_time=…) are ignored.
-    repeat=True allows the coordinator to call each endpoint more than once.
+    Uses HA's aioclient_mock, which patches the shared ClientSession the
+    integration gets from async_get_clientsession(). Regex matching ignores
+    query-string parameters (date_time=…), and registered responses are
+    served for every matching request.
     """
-    with AioResponses() as m:
-        for path, payload in _ENDPOINTS:
-            m.get(
-                re.compile(rf"{re.escape(_BASE)}/{path}"),
-                payload=payload,
-                repeat=True,
-            )
-        yield m
+    for path, payload in _ENDPOINTS:
+        aioclient_mock.get(
+            re.compile(rf"{re.escape(_BASE)}/{path}"),
+            json=payload,
+        )
+    return aioclient_mock

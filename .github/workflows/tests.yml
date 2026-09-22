@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
           path: test-results.xml
 
       - name: Run tests with coverage report
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.14'
         run: |
           pip install pytest-cov
           pytest tests/ --cov=custom_components/nea_sg_weather --cov-report=term-missing
