@@ -12,13 +12,13 @@ import io
 
 from homeassistant.components.camera import Camera, CameraEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_NAME, CONF_PREFIX, CONF_SENSORS
+from homeassistant.const import CONF_PREFIX, CONF_SENSORS
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.httpx_client import get_async_client
 
 from . import NeaWeatherDataUpdateCoordinator
+from .entity import main_device_info
 from .const import (
     DOMAIN,
     RAIN_MAP_HEADERS,
@@ -48,6 +48,9 @@ async def async_setup_entry(
 class NeaRainCamera(Camera):
     """Implementation of a camera entity for rain map overlay."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "rain_map"
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -59,7 +62,6 @@ class NeaRainCamera(Camera):
         super().__init__()
         self.hass = hass
         self.coordinator = coordinator
-        self._name = config.get(CONF_NAME) + " Rain Map"
         self._limit_refetch = True
         self.content_type = "image/png"
         self.verify_ssl = True
@@ -71,6 +73,7 @@ class NeaRainCamera(Camera):
         self._platform = "camera"
         self._prefix = config[CONF_SENSORS][CONF_PREFIX]
         self._entry_id = entry_id
+        self._attr_device_info = main_device_info(entry_id)
         self.entity_id = (
             (self._platform + "." + self._prefix + "_rain_map")
             .lower()
@@ -84,11 +87,6 @@ class NeaRainCamera(Camera):
     def unique_id(self):
         """Return the unique ID."""
         return self._prefix + " Rain Map"
-
-    @property
-    def name(self):
-        """Return the name of this device."""
-        return self._name
 
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
@@ -134,7 +132,7 @@ class NeaRainCamera(Camera):
             except httpx.TimeoutException:
                 _LOGGER.warning(
                     "Timeout getting camera image for %s from %s",
-                    self._name,
+                    self.entity_id,
                     next_image_url,
                 )
                 return self._last_image
@@ -160,7 +158,7 @@ class NeaRainCamera(Camera):
                 else:
                     _LOGGER.warning(
                         "Error getting new camera image for %s from %s: %s",
-                        self._name,
+                        self.entity_id,
                         next_image_url,
                         err,
                     )
@@ -190,19 +188,12 @@ class NeaRainCamera(Camera):
             "URL": self._last_url,
         }
 
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Device info."""
-        return DeviceInfo(
-            name="Weather forecast coordinator",
-            identifiers={(DOMAIN, self._entry_id)},
-            manufacturer="NEA Weather",
-            model="data.gov.sg API Polling",
-        )
-
 
 class NeaAnimatedRainCamera(Camera):
     """Implementation of a camera entity for rain map overlay."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "animated_rain_map"
 
     def __init__(
         self,
@@ -215,7 +206,6 @@ class NeaAnimatedRainCamera(Camera):
         super().__init__()
         self.hass = hass
         self.coordinator = coordinator
-        self._name = config.get(CONF_NAME) + " Animated Rain Map"
         self.content_type = "image/gif"
         self._last_query_time = None
         self._last_gif_time = None
@@ -227,6 +217,7 @@ class NeaAnimatedRainCamera(Camera):
         self._platform = "camera"
         self._prefix = config[CONF_SENSORS][CONF_PREFIX]
         self._entry_id = entry_id
+        self._attr_device_info = main_device_info(entry_id)
         self.entity_id = (
             (self._platform + "." + self._prefix + "_animated_rain_map")
             .lower()
@@ -240,11 +231,6 @@ class NeaAnimatedRainCamera(Camera):
     def unique_id(self):
         """Return the unique ID."""
         return self._prefix + " Animated Rain Map"
-
-    @property
-    def name(self) -> str:
-        """Return the name of this device."""
-        return self._name
 
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
@@ -326,7 +312,7 @@ class NeaAnimatedRainCamera(Camera):
             except httpx.TimeoutException:
                 _LOGGER.warning(
                     "Timeout getting camera image for %s from %s",
-                    self._name,
+                    self.entity_id,
                     next_image_url,
                 )
                 return self._last_gif
@@ -352,7 +338,7 @@ class NeaAnimatedRainCamera(Camera):
                 else:
                     _LOGGER.warning(
                         "Error getting new camera image for %s from %s: %s",
-                        self._name,
+                        self.entity_id,
                         next_image_url,
                         err,
                     )
@@ -401,13 +387,3 @@ class NeaAnimatedRainCamera(Camera):
             "Updated at": self._last_gif_time_pretty,
             "URL": self._last_url,
         }
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Device info."""
-        return DeviceInfo(
-            name="Weather forecast coordinator",
-            identifiers={(DOMAIN, self._entry_id)},
-            manufacturer="NEA Weather",
-            model="data.gov.sg API Polling",
-        )

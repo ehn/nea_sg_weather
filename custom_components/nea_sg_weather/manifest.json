@@ -5,6 +5,6 @@
   "codeowners": ["@kianhean", "@liangleslie"],
   "iot_class": "cloud_polling",
   "version": "2.7.0",
-  "homeassistant": "2024.6.0",
+  "homeassistant": "2026.9.0",
   "requirements": ["Pillow>=9.0.0"]
 }

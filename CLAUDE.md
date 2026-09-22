@@ -64,6 +64,7 @@ down a loop for an earlier async test, `get_event_loop()` raises `RuntimeError`
 ```
 custom_components/nea_sg_weather/
 ├── __init__.py       # Coordinator setup, get_platforms()
+├── entity.py         # Device info for the main device and region child devices
 ├── const.py          # All constants: areas, regions, condition maps, endpoints
 ├── nea.py            # Async API wrappers (Forecast2hr, Wind, Rain, …)
 ├── weather.py        # WeatherEntity
@@ -71,6 +72,26 @@ custom_components/nea_sg_weather/
 ├── camera.py         # Rain-map camera entities
 └── config_flow.py    # Config-entry UI flow
 ```
+
+## Devices and Entity Names
+
+Entities use Home Assistant's naming model (`_attr_has_entity_name = True`),
+so a friendly name is the device name followed by the entity name. Entity
+names come from `translation_key`s in `strings.json` (mirrored in
+`translations/en.json`); the weather entity has `_attr_name = None` and takes
+the device's name.
+
+- **Main device** — registered in `async_setup_entry` (`__init__.py`) with the
+  config entry name, identifier `(DOMAIN, entry_id)`; its ID is stored on the
+  coordinator as `device_id`. Weather, UV, area and rain sensors and the
+  cameras attach to it via `entity.main_device_info()`.
+- **Region child devices** — one per region ("Central Singapore", …), built
+  by `entity.region_device_info()` with `parent_device_id` pointing at the main
+  device. Region forecast, PM2.5 and PSI sensors attach to these. Child devices
+  need Home Assistant 2026.9, the minimum in `manifest.json`.
+
+Entity IDs are still set explicitly from the configured prefix, so they do not
+depend on names and existing users' IDs do not change.
 
 ## Dynamic Rain Sensor Management
 

@@ -25,11 +25,11 @@ from homeassistant.const import (
     UnitOfSpeed,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTRIBUTION, DOMAIN, MAP_CONDITION
+from .entity import main_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +52,10 @@ async def async_setup_entry(
 class NeaWeather(CoordinatorEntity, WeatherEntity):
     """Representation of a weather condition."""
 
+    # The weather entity is the main feature of the device, so it takes the
+    # device's name (the config entry name) as its own.
+    _attr_has_entity_name = True
+    _attr_name = None
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_native_precipitation_unit = UnitOfLength.MILLIMETERS
     _attr_native_pressure_unit = UnitOfPressure.HPA
@@ -69,6 +73,7 @@ class NeaWeather(CoordinatorEntity, WeatherEntity):
         self.coordinator = coordinator
         self._name = config[CONF_NAME]
         self._entry_id = entry_id
+        self._attr_device_info = main_device_info(entry_id)
 
     @property
     def available(self):
@@ -83,11 +88,6 @@ class NeaWeather(CoordinatorEntity, WeatherEntity):
     @property
     def unique_id(self):
         """Return unique ID."""
-        return self._name
-
-    @property
-    def name(self):
-        """Return the friendly name of the sensor."""
         return self._name
 
     @property
@@ -124,16 +124,6 @@ class NeaWeather(CoordinatorEntity, WeatherEntity):
     def extra_state_attributes(self) -> dict:
         """Return dict of additional properties to attach to sensors."""
         return {"Updated at": self.coordinator.data.temperature.timestamp}
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Device info."""
-        return DeviceInfo(
-            name="Weather forecast coordinator",
-            identifiers={(DOMAIN, self._entry_id)},
-            manufacturer="NEA Weather",
-            model="data.gov.sg API Polling",
-        )
 
     async def async_forecast_daily(self) -> list[Forecast] | None:
         """Return the daily forecast in native units.

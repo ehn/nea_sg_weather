@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.nea_sg_weather.const import DOMAIN
@@ -107,10 +108,9 @@ async def test_unload_removes_coordinator_from_hass_data(hass: HomeAssistant, mo
 # Weather entity
 # ---------------------------------------------------------------------------
 
-# Home Assistant prefixes the device name ("Weather forecast coordinator") to
-# the name of every entity attached to a device, and the weather entity's ID
-# is derived from that full name.
-WEATHER_ENTITY_ID = "weather.weather_forecast_coordinator_singapore_weather"
+# The weather entity is the main feature of the config entry's device, so it
+# takes the device's name, and its entity ID is derived from that.
+WEATHER_ENTITY_ID = "weather.singapore_weather"
 
 
 async def test_weather_entity_registered(hass: HomeAssistant, mock_nea_api):
@@ -119,7 +119,7 @@ async def test_weather_entity_registered(hass: HomeAssistant, mock_nea_api):
     states = hass.states.async_all("weather")
     assert len(states) == 1
     assert states[0].entity_id == WEATHER_ENTITY_ID
-    assert states[0].name == "Weather forecast coordinator Singapore Weather"
+    assert states[0].name == "Singapore Weather"
 
 
 async def test_weather_entity_has_temperature_attribute(hass: HomeAssistant, mock_nea_api):
@@ -184,3 +184,64 @@ async def test_pm25_sensor_has_value_without_weather_entity(hass: HomeAssistant,
     assert pm25 is not None
     assert pm25.state == "20"
     assert pm25.attributes["Updated at"] == "2024-01-01T11:30:00+08:00"
+
+
+# ---------------------------------------------------------------------------
+# Entity names and devices
+# ---------------------------------------------------------------------------
+
+async def test_friendly_names(hass: HomeAssistant, mock_nea_api):
+    """Friendly names combine the device name with a short entity name."""
+    await _load(hass, WITH_AREA_SENSORS)
+    names = {
+        "sensor.singapore_weather_ang_mo_kio": "Singapore Weather Ang Mo Kio",
+        "sensor.singapore_weather_uv": "Singapore Weather UV index",
+    }
+    for entity_id, name in names.items():
+        assert hass.states.get(entity_id).name == name
+
+
+async def test_region_entities_belong_to_region_devices(hass: HomeAssistant, mock_nea_api):
+    """Each region's entities sit on a child device of the main device."""
+    entry = await _load(hass, WITH_REGION_SENSORS)
+    names = {
+        "sensor.singapore_weather_central": "Central Singapore Forecast",
+        "sensor.singapore_weather_pm25west": "Western Singapore PM2.5 (1-hour)",
+        "sensor.singapore_weather_psinorth": "Northern Singapore PSI (24-hour)",
+    }
+    for entity_id, name in names.items():
+        assert hass.states.get(entity_id).name == name
+
+    dev_reg = dr.async_get(hass)
+    main = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
+    assert main.name == "Singapore Weather"
+    assert main.entry_type is dr.DeviceEntryType.SERVICE
+
+    entity = er.async_get(hass).async_get("sensor.singapore_weather_psinorth")
+    region = dev_reg.async_get(entity.device_id)
+    assert region.name == "Northern Singapore"
+    assert region.parent_device_id == main.id
+
+
+async def test_existing_device_is_renamed(hass: HomeAssistant, mock_nea_api):
+    """An install from before this change keeps its device, under the new name."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=WITH_REGION_SENSORS, title=WITH_REGION_SENSORS["name"]
+    )
+    entry.add_to_hass(hass)
+    dev_reg = dr.async_get(hass)
+    old = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        name="Weather forecast coordinator",
+    )
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    device = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
+    assert device.id == old.id
+    assert device.name == "Singapore Weather"

@@ -1,3 +1,15 @@
+Unreleased
+
+- Entity names follow Home Assistant's naming model: each instance's device is
+  named after the instance (was "Weather forecast coordinator"), and region
+  entities sit on one child device per region ("Central Singapore", …).
+  Friendly names read e.g. "Singapore Weather UV index" or "Central Singapore
+  PSI (24-hour)" instead of "Weather forecast coordinator PSI in Central
+  Singapore". Entity IDs are unchanged.
+- Rainfall sensors are named after the station location (e.g. "Rainfall at
+  Tanjong Rhu") instead of the station ID
+- Requires Home Assistant 2026.9 or newer
+
 v2.7.0
 
 - Updated version to 2.7.0 for HACS compatibility
