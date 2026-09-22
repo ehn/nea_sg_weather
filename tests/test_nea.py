@@ -550,12 +550,41 @@ class TestPSI:
         p.process_data()
         assert p.sub_indices == {}
 
+    def test_process_data_concentrations_keyed_by_pollutant(self):
+        p = PSI()
+        resp = self._make_resp(self._readings(50))
+        readings = resp["data"]["items"][0]["readings"]
+        readings["pm25_twenty_four_hourly"] = self._readings(25)
+        readings["pm10_twenty_four_hourly"] = self._readings(38)
+        readings["so2_twenty_four_hourly"] = self._readings(5)
+        readings["o3_eight_hour_max"] = self._readings(65)
+        readings["co_eight_hour_max"] = self._readings(1)
+        readings["no2_one_hour_max"] = self._readings(28)
+        p._resp = resp
+        p.process_data()
+        assert set(p.concentrations) == {
+            "pm25_24h", "pm10_24h", "so2_24h", "o3_8h", "co_8h", "no2_1h"
+        }
+        assert p.concentrations["pm10_24h"] == self._readings(38)
+        assert p.concentrations["no2_1h"]["central"] == 30
+
+    def test_process_data_missing_concentration_is_empty(self):
+        p = PSI()
+        resp = self._make_resp(self._readings(50))
+        resp["data"]["items"][0]["readings"]["pm10_twenty_four_hourly"] = self._readings(38)
+        p._resp = resp
+        p.process_data()
+        assert p.concentrations["pm10_24h"] == self._readings(38)
+        assert p.concentrations["co_8h"] == {}
+        assert p.data == self._readings(50)
+
     def test_initial_state(self):
         p = PSI()
         assert p.timestamp == ""
         assert p.data == {}
         assert p.pm25_24h == {}
         assert p.sub_indices == {}
+        assert p.concentrations == {}
 
 
 # ---------------------------------------------------------------------------

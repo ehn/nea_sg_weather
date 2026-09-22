@@ -9,6 +9,7 @@ from custom_components.nea_sg_weather.sensor import (
     NeaUVSensor,
     NeaPM25Sensor,
     NeaPSISensor,
+    NeaPollutantSensor,
 )
 from custom_components.nea_sg_weather.const import DOMAIN, FORECAST_ICON_BASE_URL
 
@@ -35,6 +36,7 @@ def _make_coordinator(
     psi_data=None,
     psi_pm25_24h=None,
     psi_sub_indices=None,
+    psi_concentrations=None,
     psi_timestamp="2024-01-01T12:00:00+08:00",
 ):
     coord = MagicMock()
@@ -73,6 +75,14 @@ def _make_coordinator(
         "so2": {"west": 5, "east": 6, "central": 4, "south": 5, "north": 5},
         "co": {"west": 3, "east": 3, "central": 2, "south": 3, "north": 3},
         "o3": {"west": 10, "east": 12, "central": 9, "south": 11, "north": 10},
+    }
+    coord.data.psi.concentrations = psi_concentrations if psi_concentrations is not None else {
+        "pm25_24h": {"west": 25, "east": 29, "central": 38, "south": 26, "north": 25},
+        "pm10_24h": {"west": 55, "east": 53, "central": 51, "south": 38, "north": 38},
+        "so2_24h": {"west": 6, "east": 5, "central": 3, "south": 3, "north": 5},
+        "o3_8h": {"west": 36, "east": 34, "central": 48, "south": 31, "north": 65},
+        "co_8h": {"west": 1, "east": 1, "central": 1, "south": 1, "north": 1},
+        "no2_1h": {"west": 52, "east": 46, "central": 46, "south": 42, "north": 28},
     }
     coord.data.psi.timestamp = psi_timestamp
     return coord
@@ -470,3 +480,88 @@ class TestNeaPSISensor:
         sensor = NeaPSISensor(coord, _make_config(), "West", "entry1")
         attrs = sensor.extra_state_attributes
         assert set(attrs) == {"Updated at", "PM2.5 (24h)"}
+
+
+# ---------------------------------------------------------------------------
+# NeaPollutantSensor
+# ---------------------------------------------------------------------------
+
+class TestNeaPollutantSensor:
+    def test_unique_id(self):
+        sensor = NeaPollutantSensor(_make_coordinator(), _make_config("nea"), "pm10_24h", "West", "entry1")
+        assert sensor.unique_id == "nea pm10_24h West"
+
+    def test_entity_id(self):
+        sensor = NeaPollutantSensor(_make_coordinator(), _make_config("nea"), "pm10_24h", "North", "entry1")
+        assert sensor.entity_id == "sensor.nea_pm10_24h_north"
+
+    def test_entity_id_does_not_collide_with_hourly_pm25(self):
+        coord = _make_coordinator()
+        hourly = NeaPM25Sensor(coord, _make_config("nea"), "Central", "entry1")
+        daily = NeaPollutantSensor(coord, _make_config("nea"), "pm25_24h", "Central", "entry1")
+        assert hourly.entity_id == "sensor.nea_pm25central"
+        assert daily.entity_id == "sensor.nea_pm25_24h_central"
+        assert hourly.unique_id != daily.unique_id
+
+    def test_name_from_translation_key(self):
+        sensor = NeaPollutantSensor(_make_coordinator(), _make_config(), "no2_1h", "West", "entry1")
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_translation_key == "no2_1h"
+
+    def test_disabled_by_default(self):
+        sensor = NeaPollutantSensor(_make_coordinator(), _make_config(), "pm10_24h", "West", "entry1")
+        assert sensor._attr_entity_registry_enabled_default is False
+
+    def test_belongs_to_region_device(self):
+        coord = _make_coordinator()
+        sensor = NeaPollutantSensor(coord, _make_config(), "pm10_24h", "East", "entry1")
+        assert sensor._attr_device_info == {
+            "identifiers": {(DOMAIN, "entry1_east")},
+            "parent_device_id": coord.device_id,
+            "translation_key": "east",
+        }
+
+    @pytest.mark.parametrize(
+        "pollutant, device_class, unit",
+        [
+            ("pm25_24h", "pm25", "μg/m³"),
+            ("pm10_24h", "pm10", "μg/m³"),
+            ("so2_24h", "sulphur_dioxide", "μg/m³"),
+            ("o3_8h", "ozone", "μg/m³"),
+            ("co_8h", "carbon_monoxide", "mg/m³"),
+            ("no2_1h", "nitrogen_dioxide", "μg/m³"),
+        ],
+    )
+    def test_device_class_and_unit(self, pollutant, device_class, unit):
+        sensor = NeaPollutantSensor(_make_coordinator(), _make_config(), pollutant, "West", "entry1")
+        assert sensor._attr_device_class == device_class
+        assert sensor._attr_native_unit_of_measurement == unit
+        assert sensor._attr_state_class == "measurement"
+
+    def test_native_value(self):
+        sensor = NeaPollutantSensor(_make_coordinator(), _make_config(), "no2_1h", "Central", "entry1")
+        assert sensor.native_value == 46
+
+    def test_native_value_co(self):
+        coord = _make_coordinator(psi_concentrations={"co_8h": {"west": 0.6}})
+        sensor = NeaPollutantSensor(coord, _make_config(), "co_8h", "West", "entry1")
+        assert sensor.native_value == 0.6
+
+    def test_available_when_region_present(self):
+        coord = _make_coordinator()
+        coord.last_update_success = True
+        sensor = NeaPollutantSensor(coord, _make_config(), "pm10_24h", "West", "entry1")
+        assert sensor.available is True
+
+    def test_unavailable_when_pollutant_missing(self):
+        coord = _make_coordinator(psi_concentrations={"pm10_24h": {}})
+        coord.last_update_success = True
+        sensor = NeaPollutantSensor(coord, _make_config(), "pm10_24h", "West", "entry1")
+        assert sensor.available is False
+        sensor2 = NeaPollutantSensor(coord, _make_config(), "co_8h", "West", "entry1")
+        assert sensor2.available is False
+
+    def test_extra_state_attributes_timestamp(self):
+        coord = _make_coordinator(psi_timestamp="2024-06-01T08:00:00+08:00")
+        sensor = NeaPollutantSensor(coord, _make_config(), "pm10_24h", "West", "entry1")
+        assert sensor.extra_state_attributes == {"Updated at": "2024-06-01T08:00:00+08:00"}

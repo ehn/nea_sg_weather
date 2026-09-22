@@ -1,5 +1,10 @@
 Unreleased
 
+- Added pollutant concentration sensors per region (PM2.5 and PM10 24-hour,
+  SO2 24-hour, O3 and CO 8-hour max, NO2 1-hour max) from the PSI response,
+  so the values get history and statistics. Created disabled by default
+  (`sensor.<prefix>_pm10_24h_central` etc.); enable the ones you want
+- The 1-hour PM2.5 sensor now uses Home Assistant's `UnitOfDensity` unit
 - Entity names follow Home Assistant's naming model: each instance's device is
   named after the instance (was "Weather forecast coordinator"), and region
   entities sit on one child device per region ("Central Singapore", …).

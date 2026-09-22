@@ -48,6 +48,8 @@ Tests live in `tests/` and are structured by source module:
 | `tests/test_nea.py` | API wrapper data-processing logic (`nea.py`) |
 | `tests/test_init.py` | `get_platforms()` platform selection; which data objects `async_update` polls per configuration |
 | `tests/test_sensor.py` | Sensor entity properties and formatting |
+| `ha_tests/` | Boots a real HA core (`pytest-homeassistant-custom-component`) with the NEA API mocked |
+| `e2e_tests/` | Live data.gov.sg API; run with `-p no:homeassistant` when the HA test plugin is installed |
 
 Since this integration depends on Home Assistant, `tests/conftest.py` patches
 `sys.modules` with lightweight stubs before any source imports happen. No full
@@ -92,6 +94,28 @@ the device's name.
 
 Entity IDs are still set explicitly from the configured prefix, so they do not
 depend on names and existing users' IDs do not change.
+
+## Pollutant Concentration Sensors
+
+`PSI.process_data` in `nea.py` stores the pollutant concentrations that come
+with the PSI response in `PSI.concentrations`, keyed by the short names in
+`const.POLLUTANT_READINGS` (`pm25_24h`, `pm10_24h`, `so2_24h`, `o3_8h`,
+`co_8h`, `no2_1h`) and then by region. Missing keys give an empty dict so the
+PSI sensor keeps working.
+
+`sensor.NeaPollutantSensor` is one class for all of them, driven by the
+pollutant name: translation key, device class (`POLLUTANT_DEVICE_CLASSES`) and
+unit (`POLLUTANT_UNITS`, µg/m³ unless listed — NEA reports CO in mg/m³). One
+entity per pollutant and region is created when region sensors are enabled,
+on the region's child device, with `entity_registry_enabled_default = False`.
+Entity IDs are `sensor.<prefix>_<pollutant>_<region>` (with an underscore
+before the region, unlike the older region sensors) and unique IDs
+`<prefix> <pollutant> <Region>`. `available` is `False` when the region is
+missing from the pollutant's data.
+
+To add a pollutant, add its reading key to `POLLUTANT_READINGS`, a device
+class to `POLLUTANT_DEVICE_CLASSES`, a name to `strings.json` and
+`translations/en.json`, and extend the tests in all three suites.
 
 ## Dynamic Rain Sensor Management
 

@@ -186,6 +186,52 @@ async def test_pm25_sensor_has_value_without_weather_entity(hass: HomeAssistant,
     assert pm25.attributes["Updated at"] == "2024-01-01T11:30:00+08:00"
 
 
+async def test_pollutant_sensors_registered_but_disabled(hass: HomeAssistant, mock_nea_api):
+    """Pollutant concentration sensors exist for every pollutant and region, disabled by default."""
+    await _load(hass, WITH_REGION_SENSORS)
+    ent_reg = er.async_get(hass)
+    for pollutant in ("pm25_24h", "pm10_24h", "so2_24h", "o3_8h", "co_8h", "no2_1h"):
+        for region in ("west", "east", "central", "south", "north"):
+            entry = ent_reg.async_get(f"sensor.singapore_weather_{pollutant}_{region}")
+            assert entry is not None, f"{pollutant} {region}"
+            assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+            assert hass.states.get(entry.entity_id) is None
+
+
+async def test_pollutant_sensor_values_when_enabled(hass: HomeAssistant, mock_nea_api):
+    """Enabled pollutant sensors report NEA's concentration, unit and device class."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=WITH_REGION_SENSORS, title=WITH_REGION_SENSORS["name"]
+    )
+    entry.add_to_hass(hass)
+    ent_reg = er.async_get(hass)
+    expected = {
+        ("pm10_24h", "central"): ("28", "μg/m³", "pm10"),
+        ("co_8h", "central"): ("0.7", "mg/m³", "carbon_monoxide"),
+        ("no2_1h", "north"): ("28", "μg/m³", "nitrogen_dioxide"),
+    }
+    for pollutant, region in expected:
+        ent_reg.async_get_or_create(
+            "sensor", DOMAIN, f"Singapore Weather {pollutant} {region.capitalize()}",
+            suggested_object_id=f"singapore_weather_{pollutant}_{region}",
+            config_entry=entry, disabled_by=None,
+        )
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    for (pollutant, region), (value, unit, device_class) in expected.items():
+        state = hass.states.get(f"sensor.singapore_weather_{pollutant}_{region}")
+        assert state is not None, f"{pollutant} {region}"
+        assert state.state == value
+        assert state.attributes["unit_of_measurement"] == unit
+        assert state.attributes["device_class"] == device_class
+        assert state.attributes["state_class"] == "measurement"
+        assert state.attributes["Updated at"] == "2024-01-01T12:00:00+08:00"
+
+    name = hass.states.get("sensor.singapore_weather_co_8h_central").name
+    assert name == "Central Singapore CO (8-hour max)"
+
+
 # ---------------------------------------------------------------------------
 # Entity names and devices
 # ---------------------------------------------------------------------------

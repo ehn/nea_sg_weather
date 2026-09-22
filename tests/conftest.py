@@ -73,6 +73,11 @@ _ha_sensor.SensorDeviceClass = MagicMock()
 _ha_sensor.SensorDeviceClass.PM25 = "pm25"
 _ha_sensor.SensorDeviceClass.AQI = "aqi"
 _ha_sensor.SensorDeviceClass.PRECIPITATION = "precipitation"
+_ha_sensor.SensorDeviceClass.PM10 = "pm10"
+_ha_sensor.SensorDeviceClass.SULPHUR_DIOXIDE = "sulphur_dioxide"
+_ha_sensor.SensorDeviceClass.OZONE = "ozone"
+_ha_sensor.SensorDeviceClass.CO = "carbon_monoxide"
+_ha_sensor.SensorDeviceClass.NITROGEN_DIOXIDE = "nitrogen_dioxide"
 _ha_sensor.SensorEntity = _SensorEntity
 _ha_sensor.SensorStateClass = MagicMock()
 _ha_sensor.SensorStateClass.MEASUREMENT = "measurement"
@@ -98,6 +103,9 @@ _ha_const.UnitOfSpeed = MagicMock()
 _ha_const.UnitOfSpeed.KNOTS = "kn"
 _ha_const.UnitOfPrecipitationDepth = MagicMock()
 _ha_const.UnitOfPrecipitationDepth.MILLIMETERS = "mm"
+_ha_const.UnitOfDensity = MagicMock()
+_ha_const.UnitOfDensity.MICROGRAMS_PER_CUBIC_METER = "μg/m³"
+_ha_const.UnitOfDensity.MILLIGRAMS_PER_CUBIC_METER = "mg/m³"
 
 # ---------------------------------------------------------------------------
 # homeassistant.helpers.update_coordinator

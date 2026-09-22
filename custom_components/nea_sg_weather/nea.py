@@ -21,6 +21,7 @@ from homeassistant.components.weather import (
 )
 
 from .const import (
+    POLLUTANT_READINGS,
     PRIMARY_ENDPOINTS,
     SECONDARY_ENDPOINTS,
     FORECAST_MAP_CONDITION,
@@ -417,6 +418,7 @@ class PSI(NeaData):
         self.data = dict()
         self.pm25_24h = dict()
         self.sub_indices = dict()
+        self.concentrations = dict()
         NeaData.__init__(
             self,
             PRIMARY_ENDPOINTS["psi"],
@@ -440,6 +442,13 @@ class PSI(NeaData):
             key.removesuffix("_sub_index"): value
             for key, value in readings.items()
             if key.endswith("_sub_index")
+        }
+
+        # Store pollutant concentrations, keyed by pollutant then region. NEA
+        # publishes each pollutant at the averaging window the PSI uses.
+        self.concentrations = {
+            pollutant: readings.get(key, {})
+            for pollutant, key in POLLUTANT_READINGS.items()
         }
 
         _LOGGER.debug("%s: Data processed", self.__class__.__name__)

@@ -69,6 +69,24 @@
       },
       "uv_index": {
         "name": "UV index"
+      },
+      "pm25_24h": {
+        "name": "PM2.5 (24-hour)"
+      },
+      "pm10_24h": {
+        "name": "PM10 (24-hour)"
+      },
+      "so2_24h": {
+        "name": "SO2 (24-hour)"
+      },
+      "o3_8h": {
+        "name": "O3 (8-hour max)"
+      },
+      "co_8h": {
+        "name": "CO (8-hour max)"
+      },
+      "no2_1h": {
+        "name": "NO2 (1-hour max)"
       }
     }
   }

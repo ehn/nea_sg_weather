@@ -22,6 +22,7 @@ Follow the integration config flow to set up the following entities:
 - `rain` sensors: one rainfall sensor per active NEA station, fetched live from the API — stations are added and removed automatically as the API changes
 - `pm25` sensors: 5 pm2.5 sensors for North/South/East/West/Central regions of Singapore
 - `psi` sensors: 5 sensors with the 24-hour PSI for North/South/East/West/Central regions of Singapore; the 24-hour PM2.5 and the per-pollutant sub-indices are exposed as attributes
+- pollutant sensors: per region, the concentrations behind the PSI — PM2.5 and PM10 (24-hour), SO2 (24-hour), O3 and CO (8-hour max) and NO2 (1-hour max). These 30 sensors are created disabled; enable the ones you want from the region's device page
 - `uv_index` sensor: UV index for Singapore
 
 ### Devices and entity names

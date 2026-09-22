@@ -221,3 +221,12 @@ async def test_psi_returns_regional_data():
     for pollutant, values in p.sub_indices.items():
         assert not pollutant.endswith("_sub_index"), pollutant
         assert set(values) <= expected_regions, f"Unexpected regions in {pollutant!r} sub-index"
+
+    # Every pollutant concentration NEA publishes should be present for all regions
+    assert set(p.concentrations) == {
+        "pm25_24h", "pm10_24h", "so2_24h", "o3_8h", "co_8h", "no2_1h"
+    }
+    for pollutant, values in p.concentrations.items():
+        assert set(values) == expected_regions, f"Missing regions in {pollutant!r}"
+        for region, value in values.items():
+            assert value >= 0, f"{pollutant} for {region!r} is negative"

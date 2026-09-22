@@ -555,6 +555,17 @@ RAIN_SENSOR_LIST = [
 
 REGIONS = ["West", "East", "Central", "South", "North"]
 
+# Pollutant concentrations in the PSI API response, keyed by the pollutant's
+# short name (used as the sensor's translation key and in its entity ID).
+POLLUTANT_READINGS = {
+    "pm25_24h": "pm25_twenty_four_hourly",
+    "pm10_24h": "pm10_twenty_four_hourly",
+    "so2_24h": "so2_twenty_four_hourly",
+    "o3_8h": "o3_eight_hour_max",
+    "co_8h": "co_eight_hour_max",
+    "no2_1h": "no2_one_hour_max",
+}
+
 PRIMARY_ENDPOINTS = {
     "forecast2hr": "https://api-open.data.gov.sg/v2/real-time/api/two-hr-forecast",
     "forecast24hr": "https://api-open.data.gov.sg/v2/real-time/api/twenty-four-hr-forecast",
