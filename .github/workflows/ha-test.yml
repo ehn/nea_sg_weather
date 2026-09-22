@@ -42,7 +42,10 @@ jobs:
 
   comment:
     needs: ha-test
-    if: always() && github.event_name == 'pull_request'
+    # Pull requests from forks get a read-only token and cannot comment.
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
