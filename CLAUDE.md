@@ -123,9 +123,13 @@ The class-name → attribute mapping is kept in `_ATTR_BY_CLASS` at module level
 
 ## CI
 
-GitHub Actions (`.github/workflows/tests.yml`) runs the suite on Python 3.11
-and 3.12 for every push to `main`/`master` and every pull request.
+GitHub Actions (`.github/workflows/tests.yml`) runs the suite on Python 3.14,
+the version current Home Assistant requires, for every push to `main`/`master`
+and every pull request.
 
 The HA integration test workflow (`.github/workflows/ha-test.yml`) uses
-`requirements-ha-test.txt`. The `pytest-homeassistant-custom-component` package
-is pinned to `>=0.13.0,<1.0.0` because version 1.x does not exist for Python 3.12.
+`requirements-ha-test.txt`, which pins `pytest-homeassistant-custom-component`
+to an exact version (and with it the Home Assistant release the tests boot).
+Bump the pin to test against a newer HA. The `ha_tests/` fixtures mock the NEA
+API with HA's `aioclient_mock`, which patches the shared session returned by
+`async_get_clientsession()`.

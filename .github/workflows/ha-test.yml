@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.14"
 
       - name: Cache pip (HA deps are large)
         uses: actions/cache@v4
@@ -42,7 +42,10 @@ jobs:
 
   comment:
     needs: ha-test
-    if: always() && github.event_name == 'pull_request'
+    # Pull requests from forks get a read-only token and cannot comment.
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

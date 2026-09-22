@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -36,14 +36,17 @@ jobs:
           path: test-results.xml
 
       - name: Run tests with coverage report
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.14'
         run: |
           pip install pytest-cov
           pytest tests/ --cov=custom_components/nea_sg_weather --cov-report=term-missing
 
   comment:
     needs: test
-    if: always() && github.event_name == 'pull_request'
+    # Pull requests from forks get a read-only token and cannot comment.
+    if: >-
+      always() && github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write

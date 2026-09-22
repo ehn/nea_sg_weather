@@ -2,7 +2,7 @@
 
 These tests use pytest-homeassistant-custom-component which spins up a
 lightweight but real HA core.  All NEA API HTTP calls are intercepted by the
-mock_nea_api fixture (aioresponses), so no network access is required.
+mock_nea_api fixture (HA's aioclient_mock), so no network access is required.
 
 Run with:
     pytest ha_tests/ -v
@@ -107,18 +107,25 @@ async def test_unload_removes_coordinator_from_hass_data(hass: HomeAssistant, mo
 # Weather entity
 # ---------------------------------------------------------------------------
 
+# Home Assistant prefixes the device name ("Weather forecast coordinator") to
+# the name of every entity attached to a device, and the weather entity's ID
+# is derived from that full name.
+WEATHER_ENTITY_ID = "weather.weather_forecast_coordinator_singapore_weather"
+
+
 async def test_weather_entity_registered(hass: HomeAssistant, mock_nea_api):
     """A weather entity appears in the state machine after setup."""
     await _load(hass, WEATHER_ONLY)
     states = hass.states.async_all("weather")
     assert len(states) == 1
-    assert states[0].name == "Singapore Weather"
+    assert states[0].entity_id == WEATHER_ENTITY_ID
+    assert states[0].name == "Weather forecast coordinator Singapore Weather"
 
 
 async def test_weather_entity_has_temperature_attribute(hass: HomeAssistant, mock_nea_api):
     """Weather entity exposes a numeric temperature."""
     await _load(hass, WEATHER_ONLY)
-    state = hass.states.get("weather.singapore_weather")
+    state = hass.states.get(WEATHER_ENTITY_ID)
     assert state is not None
     temp = state.attributes.get("temperature")
     assert isinstance(temp, (int, float))
@@ -127,7 +134,7 @@ async def test_weather_entity_has_temperature_attribute(hass: HomeAssistant, moc
 async def test_weather_entity_condition_is_valid(hass: HomeAssistant, mock_nea_api):
     """Weather entity condition is a recognised HA weather state string."""
     await _load(hass, WEATHER_ONLY)
-    state = hass.states.get("weather.singapore_weather")
+    state = hass.states.get(WEATHER_ENTITY_ID)
     assert state is not None
     assert state.state not in ("unavailable", "unknown")
 
@@ -135,7 +142,7 @@ async def test_weather_entity_condition_is_valid(hass: HomeAssistant, mock_nea_a
 async def test_weather_entity_humidity_attribute(hass: HomeAssistant, mock_nea_api):
     """Weather entity exposes humidity."""
     await _load(hass, WEATHER_ONLY)
-    state = hass.states.get("weather.singapore_weather")
+    state = hass.states.get(WEATHER_ENTITY_ID)
     humidity = state.attributes.get("humidity")
     assert isinstance(humidity, (int, float))
 
