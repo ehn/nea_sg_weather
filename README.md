@@ -12,6 +12,8 @@ Home Assistant Integration to get current weather information directly from Data
 
 Add this integration to Home Assistant using HACS, or copy everything in `custom_components/nea_sg_weather` to your `custom_components` folder in your Home Assistant `config` folder. 
 
+Requires Home Assistant 2026.9 or newer.
+
 Follow the integration config flow to set up the following entities:
 - `weather`: weather entity with 4 day forecasts
 - `area` (town) sensors: current weather conditions for up to 47 areas/towns in Singapore
@@ -21,6 +23,12 @@ Follow the integration config flow to set up the following entities:
 - `pm25` sensors: 5 pm2.5 sensors for North/South/East/West/Central regions of Singapore
 - `psi` sensors: 5 sensors with the 24-hour PSI for North/South/East/West/Central regions of Singapore; the 24-hour PM2.5 and the per-pollutant sub-indices are exposed as attributes
 - `uv_index` sensor: UV index for Singapore
+
+### Devices and entity names
+
+Each configured instance creates a device named after the instance (e.g. "Singapore Weather") holding the weather entity, the UV, area and rainfall sensors and the rain map cameras. When region sensors are enabled, each region gets its own device ("Central Singapore", "Northern Singapore", …) under the main device, holding that region's forecast, PM2.5 and PSI sensors.
+
+Entity names follow Home Assistant's convention of device name plus entity name, e.g. "Singapore Weather UV index" or "Central Singapore PSI (24-hour)". Entity IDs are built from the configured prefix and do not depend on these names.
 
 
 ## Weather Map Overlays

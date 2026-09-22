@@ -9,12 +9,14 @@ from asyncio import timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    CONF_NAME,
     CONF_SCAN_INTERVAL,
     CONF_SENSORS,
     CONF_TIMEOUT,
     CONF_REGION,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -71,6 +73,18 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     coordinator = NeaWeatherDataUpdateCoordinator(hass, config_entry)
     await coordinator.async_config_entry_first_refresh()
 
+    # Region entities belong to child devices of this main device, which must
+    # be registered before the platforms are set up.
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=config_entry.entry_id,
+        identifiers={(DOMAIN, config_entry.entry_id)},
+        name=config_entry.data[CONF_NAME],
+        manufacturer="NEA Weather",
+        model="data.gov.sg API Polling",
+        entry_type=dr.DeviceEntryType.SERVICE,
+    )
+    coordinator.device_id = device.id
+
     hass.data.setdefault(DOMAIN, {})[config_entry.entry_id] = coordinator
 
     _platforms = get_platforms(config_entry)["platforms"]
@@ -105,6 +119,7 @@ class NeaWeatherDataUpdateCoordinator(DataUpdateCoordinator):
         self._hass = hass
         self._config_entry = config_entry
         self.data: NeaWeatherData.NeaData
+        self.device_id: str | None = None
 
         super().__init__(
             hass,

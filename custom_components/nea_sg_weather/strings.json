@@ -27,5 +27,49 @@
       "already_configured": "Integration with same name already registered, please remove existing configuration and try again",
       "no_entities_selected": "No entities selected, please choose an entity type to register and try again"
     }
+  },
+  "device": {
+    "central": {
+      "name": "Central Singapore"
+    },
+    "north": {
+      "name": "Northern Singapore"
+    },
+    "south": {
+      "name": "Southern Singapore"
+    },
+    "east": {
+      "name": "Eastern Singapore"
+    },
+    "west": {
+      "name": "Western Singapore"
+    }
+  },
+  "entity": {
+    "camera": {
+      "rain_map": {
+        "name": "Rain map"
+      },
+      "animated_rain_map": {
+        "name": "Animated rain map"
+      }
+    },
+    "sensor": {
+      "forecast": {
+        "name": "Forecast"
+      },
+      "pm25_1h": {
+        "name": "PM2.5 (1-hour)"
+      },
+      "psi_24h": {
+        "name": "PSI (24-hour)"
+      },
+      "rainfall": {
+        "name": "Rainfall at {station}"
+      },
+      "uv_index": {
+        "name": "UV index"
+      }
+    }
   }
 }

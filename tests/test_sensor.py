@@ -10,7 +10,7 @@ from custom_components.nea_sg_weather.sensor import (
     NeaPM25Sensor,
     NeaPSISensor,
 )
-from custom_components.nea_sg_weather.const import FORECAST_ICON_BASE_URL
+from custom_components.nea_sg_weather.const import DOMAIN, FORECAST_ICON_BASE_URL
 
 
 # ---------------------------------------------------------------------------
@@ -145,11 +145,11 @@ class TestNeaAreaSensor:
         assert attrs["latitude"] == pytest.approx(1.375)
         assert attrs["longitude"] == pytest.approx(103.839)
 
-    def test_device_info_returns_dict_like(self):
+    def test_belongs_to_main_device(self):
         coord = _make_coordinator()
         sensor = NeaAreaSensor(coord, _make_config(), "Ang Mo Kio", "entry1")
-        info = sensor.device_info
-        assert info is not None
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_device_info == {"identifiers": {(DOMAIN, "entry1")}}
 
 
 # ---------------------------------------------------------------------------
@@ -166,26 +166,19 @@ class TestNeaRegionSensor:
         sensor = NeaRegionSensor(coord, _make_config("nea"), "West", "entry1")
         assert sensor.unique_id == "nea West"
 
-    def test_name_non_central(self):
-        coord = self._make_coord("West")
+    def test_name_from_translation_key(self):
+        sensor = NeaRegionSensor(_make_coordinator(), _make_config(), "West", "entry1")
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_translation_key == "forecast"
+
+    def test_belongs_to_region_device(self):
+        coord = _make_coordinator()
         sensor = NeaRegionSensor(coord, _make_config(), "West", "entry1")
-        assert sensor.name == "Weather in Western Singapore"
-
-    def test_name_central(self):
-        coord = self._make_coord("Central")
-        coord.data.forecast24hr.region_forecast["central"] = [
-            ["Today morning", "Cloudy"]
-        ]
-        sensor = NeaRegionSensor(coord, _make_config(), "Central", "entry1")
-        assert sensor.name == "Weather in Central Singapore"
-
-    def test_name_east(self):
-        coord = self._make_coord("East")
-        coord.data.forecast24hr.region_forecast["east"] = [
-            ["Today morning", "Sunny"]
-        ]
-        sensor = NeaRegionSensor(coord, _make_config(), "East", "entry1")
-        assert sensor.name == "Weather in Eastern Singapore"
+        assert sensor._attr_device_info == {
+            "identifiers": {(DOMAIN, "entry1_west")},
+            "parent_device_id": coord.device_id,
+            "translation_key": "west",
+        }
 
     def test_entity_id(self):
         coord = self._make_coord("North")
@@ -223,10 +216,21 @@ class TestNeaRainSensor:
         sensor = NeaRainSensor(coord, _make_config("nea"), "S77", "entry1")
         assert sensor.unique_id == "nea Rainfall S77"
 
-    def test_name(self):
-        coord = _make_coordinator(rain_station="S77")
+    def test_name_uses_station_location(self):
+        coord = _make_coordinator(rain_station="S77", rain_name="Alexandra Road")
         sensor = NeaRainSensor(coord, _make_config(), "S77", "entry1")
-        assert sensor.name == "S77"
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_translation_key == "rainfall"
+        assert sensor._attr_translation_placeholders == {"station": "Alexandra Road"}
+
+    def test_name_falls_back_to_station_id(self):
+        coord = _make_coordinator(rain_station="S77")
+        sensor = NeaRainSensor(coord, _make_config(), "S99", "entry1")
+        assert sensor._attr_translation_placeholders == {"station": "S99"}
+
+    def test_belongs_to_main_device(self):
+        sensor = NeaRainSensor(_make_coordinator(), _make_config(), "S77", "entry1")
+        assert sensor._attr_device_info == {"identifiers": {(DOMAIN, "entry1")}}
 
     def test_entity_id(self):
         coord = _make_coordinator(rain_station="S77")
@@ -303,10 +307,14 @@ class TestNeaUVSensor:
         sensor = NeaUVSensor(coord, _make_config("nea"), "entry1")
         assert sensor.unique_id == "nea_uv"
 
-    def test_name(self):
-        coord = _make_coordinator()
-        sensor = NeaUVSensor(coord, _make_config(), "entry1")
-        assert sensor.name == "UV Index in Singapore"
+    def test_name_from_translation_key(self):
+        sensor = NeaUVSensor(_make_coordinator(), _make_config(), "entry1")
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_translation_key == "uv_index"
+
+    def test_belongs_to_main_device(self):
+        sensor = NeaUVSensor(_make_coordinator(), _make_config(), "entry1")
+        assert sensor._attr_device_info == {"identifiers": {(DOMAIN, "entry1")}}
 
     def test_entity_id(self):
         coord = _make_coordinator()
@@ -342,20 +350,19 @@ class TestNeaPM25Sensor:
         sensor = NeaPM25Sensor(coord, _make_config("nea"), "West", "entry1")
         assert sensor.unique_id == "nea pm25 West"
 
-    def test_name_non_central(self):
+    def test_name_from_translation_key(self):
+        sensor = NeaPM25Sensor(_make_coordinator(), _make_config(), "West", "entry1")
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_translation_key == "pm25_1h"
+
+    def test_belongs_to_region_device(self):
         coord = _make_coordinator()
         sensor = NeaPM25Sensor(coord, _make_config(), "West", "entry1")
-        assert sensor.name == "PM 2.5 Readings in Western Singapore"
-
-    def test_name_central(self):
-        coord = _make_coordinator()
-        sensor = NeaPM25Sensor(coord, _make_config(), "Central", "entry1")
-        assert sensor.name == "PM 2.5 Readings in Central Singapore"
-
-    def test_name_east(self):
-        coord = _make_coordinator()
-        sensor = NeaPM25Sensor(coord, _make_config(), "East", "entry1")
-        assert sensor.name == "PM 2.5 Readings in Eastern Singapore"
+        assert sensor._attr_device_info == {
+            "identifiers": {(DOMAIN, "entry1_west")},
+            "parent_device_id": coord.device_id,
+            "translation_key": "west",
+        }
 
     def test_native_value(self):
         pm25_data = {"west": 15, "east": 18, "central": 12, "south": 10, "north": 14}
@@ -387,20 +394,19 @@ class TestNeaPSISensor:
         sensor = NeaPSISensor(coord, _make_config("nea"), "West", "entry1")
         assert sensor.unique_id == "nea psi West"
 
-    def test_name_non_central(self):
+    def test_name_from_translation_key(self):
+        sensor = NeaPSISensor(_make_coordinator(), _make_config(), "West", "entry1")
+        assert sensor._attr_has_entity_name is True
+        assert sensor._attr_translation_key == "psi_24h"
+
+    def test_belongs_to_region_device(self):
         coord = _make_coordinator()
         sensor = NeaPSISensor(coord, _make_config(), "West", "entry1")
-        assert sensor.name == "PSI in Western Singapore"
-
-    def test_name_central(self):
-        coord = _make_coordinator()
-        sensor = NeaPSISensor(coord, _make_config(), "Central", "entry1")
-        assert sensor.name == "PSI in Central Singapore"
-
-    def test_name_east(self):
-        coord = _make_coordinator()
-        sensor = NeaPSISensor(coord, _make_config(), "East", "entry1")
-        assert sensor.name == "PSI in Eastern Singapore"
+        assert sensor._attr_device_info == {
+            "identifiers": {(DOMAIN, "entry1_west")},
+            "parent_device_id": coord.device_id,
+            "translation_key": "west",
+        }
 
     def test_native_value(self):
         psi_data = {"west": 121, "east": 95, "central": 130, "south": 88, "north": 101}
